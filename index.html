@@ -1,1 +1,87 @@
-<script src="src/js/main.js"></script>
+<!doctype html>
+<html lang="pt-br" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clima Agora</title>
+
+    <link rel="stylesheet" href="./src/css/base.css" />
+    <link rel="stylesheet" href="./src/css/styles.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">☁️</div>
+        <div class="brand-text">
+          <h1 class="app-name">Clima Agora</h1>
+          <p class="tagline">Previsão rápida e minimalista (Open-Meteo)</p>
+        </div>
+      </div>
+
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Alternar tema">
+        🌙
+      </button>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <form id="weatherForm" class="form" autocomplete="off">
+          <label class="label" for="cityInput">Digite o nome da cidade</label>
+
+          <div class="row">
+            <input
+              id="cityInput"
+              class="input"
+              type="text"
+              placeholder="Ex: Recife"
+              required
+            />
+
+            <button id="searchBtn" class="btn btn-primary" type="submit">
+              Buscar
+            </button>
+          </div>
+
+          <p class="hint">
+            Dica: para melhores resultados, informe o nome da cidade.
+          </p>
+        </form>
+
+        <!-- Alertas -->
+        <div id="alert" class="alert" role="status" aria-live="polite" hidden></div>
+
+        <!-- Resultado -->
+        <div id="result" class="result" hidden>
+          <div class="result-head">
+            <h2 id="resultCity" class="result-city">—</h2>
+            <p id="resultDesc" class="result-desc">—</p>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <p class="metric-value"><span id="tempValue">--</span><span class="unit">°C</span></p>
+              <p class="metric-name">Temperatura</p>
+            </div>
+
+            <div class="metric">
+              <p class="metric-value"><span id="windValue">--</span><span class="unit">km/h</span></p>
+              <p class="metric-name">Vento</p>
+            </div>
+
+            <div class="metric">
+              <p class="metric-value"><span id="humValue">--</span><span class="unit">%</span></p>
+              <p class="metric-name">Umidade</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>Desenvolvido por Cesar Henrique.</span>
+      </footer>
+    </main>
+
+    <script type="module" src="./src/js/main.js"></script>
+  </body>
+</html>

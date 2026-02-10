@@ -1,14 +1,68 @@
-/**
- * App simples de clima (Open-Meteo)
- * - Recebe nome da cidade
- * - Busca latitude/longitude (Geocoding)
- * - Busca clima atual (current_weather)
- * - Retorna um objeto JSON com cidade, temperatura (°C) e descrição
- * - Trata erros: cidade inválida, cidade não encontrada, falhas da API e rede
- */
+// =====================
+// Theme toggle
+// =====================
+const themeToggle = document.getElementById("themeToggle");
+const root = document.documentElement;
 
-function getWeatherDescription(code) {
-  const descriptions = {
+function applyTheme(theme) {
+  root.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+applyTheme(localStorage.getItem("theme") || root.getAttribute("data-theme") || "dark");
+
+themeToggle.addEventListener("click", () => {
+  const current = root.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+});
+
+// =====================
+// UI helpers
+// =====================
+const form = document.getElementById("weatherForm");
+const cityInput = document.getElementById("cityInput");
+const searchBtn = document.getElementById("searchBtn");
+
+const alertBox = document.getElementById("alert");
+const resultBox = document.getElementById("result");
+
+const resultCity = document.getElementById("resultCity");
+const resultDesc = document.getElementById("resultDesc");
+const tempValue = document.getElementById("tempValue");
+const windValue = document.getElementById("windValue");
+const humValue = document.getElementById("humValue");
+
+function showAlert(message, type = "ok") {
+  alertBox.hidden = false;
+  alertBox.className = `alert ${type}`;
+  alertBox.textContent = message;
+}
+
+function hideAlert() {
+  alertBox.hidden = true;
+  alertBox.textContent = "";
+  alertBox.className = "alert";
+}
+
+function showResult() {
+  resultBox.hidden = false;
+}
+
+function hideResult() {
+  resultBox.hidden = true;
+}
+
+function setLoading(isLoading) {
+  searchBtn.disabled = isLoading;
+  searchBtn.textContent = isLoading ? "Buscando..." : "Buscar";
+}
+
+// =====================
+// Weather description (WMO codes)
+// =====================
+function weatherDescriptionFromCode(code) {
+  const map = {
     0: "Céu limpo",
     1: "Predominantemente limpo",
     2: "Parcialmente nublado",
@@ -28,91 +82,98 @@ function getWeatherDescription(code) {
     81: "Pancadas de chuva moderadas",
     82: "Pancadas de chuva fortes"
   };
+  return map[code] ?? "Condição não identificada";
+}
 
-  return descriptions[code] || "Condição climática desconhecida";
+// =====================
+// Open-Meteo API calls
+// =====================
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Falha na API (status ${res.status}).`);
+  }
+  return res.json();
 }
 
 async function getWeatherByCity(cityName) {
-  try {
-    // 0) Validar entrada
-    if (!cityName || cityName.trim() === "") {
-      throw new Error("Nome da cidade inválido. Digite um nome válido.");
-    }
+  const name = cityName?.trim();
+  if (!name) throw new Error("Digite uma cidade válida.");
 
-    // 1) Geocoding: obter latitude/longitude
-    const geoUrl =
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}` +
-      `&count=1&language=pt&format=json`;
+  // 1) Geocoding
+  const geoUrl =
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}` +
+    `&count=1&language=pt&format=json`;
 
-    let geoResponse;
-    try {
-      geoResponse = await fetch(geoUrl);
-    } catch {
-      throw new Error("Problema de rede ao acessar o serviço de geocodificação.");
-    }
+  const geoData = await fetchJson(geoUrl);
 
-    if (!geoResponse.ok) {
-      throw new Error(`Falha na API de geocodificação. Status: ${geoResponse.status}`);
-    }
-
-    const geoData = await geoResponse.json();
-
-    if (!geoData.results || geoData.results.length === 0) {
-      throw new Error("Cidade não encontrada. Verifique o nome e tente novamente.");
-    }
-
-    const { latitude, longitude, name, country } = geoData.results[0];
-
-    // 2) Clima atual: buscar current_weather
-    const weatherUrl =
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}` +
-      `&longitude=${longitude}&current_weather=true`;
-
-    let weatherResponse;
-    try {
-      weatherResponse = await fetch(weatherUrl);
-    } catch {
-      throw new Error("Problema de rede ao acessar o serviço de clima.");
-    }
-
-    if (!weatherResponse.ok) {
-      throw new Error(`Falha na API de clima. Status: ${weatherResponse.status}`);
-    }
-
-    const weatherData = await weatherResponse.json();
-
-    if (!weatherData.current_weather) {
-      throw new Error("A API não retornou dados atuais do clima (current_weather).");
-    }
-
-    const temperatureC = weatherData.current_weather.temperature;
-    const weatherCode = weatherData.current_weather.weathercode;
-
-    // 3) Retornar objeto JSON final
-    return {
-      city: country ? `${name} (${country})` : name,
-      temperatureC, // número (ex: 28.4)
-      description: getWeatherDescription(weatherCode)
-    };
-  } catch (error) {
-    return {
-      error: true,
-      message: error.message
-    };
+  if (!geoData.results || geoData.results.length === 0) {
+    throw new Error("Cidade não encontrada. Tente adicionar o estado (ex: Recife, PE).");
   }
+
+  const place = geoData.results[0];
+  const lat = place.latitude;
+  const lon = place.longitude;
+
+  const displayName = [
+    place.name,
+    place.admin1 ? place.admin1 : null,
+    place.country ? place.country : null
+  ].filter(Boolean).join(", ");
+
+  // 2) Weather (usando `current=` para pegar também umidade)
+  const weatherUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code` +
+    `&timezone=auto`;
+
+  const weatherData = await fetchJson(weatherUrl);
+
+  if (!weatherData.current) {
+    throw new Error("Não foi possível obter os dados atuais do clima.");
+  }
+
+  return {
+    city: displayName,
+    temperatureC: weatherData.current.temperature_2m,
+    windKmh: weatherData.current.wind_speed_10m,
+    humidity: weatherData.current.relative_humidity_2m,
+    description: weatherDescriptionFromCode(weatherData.current.weather_code)
+  };
 }
 
 // =====================
-// Exemplo de uso no Node
+// Form submit (click Buscar / Enter)
 // =====================
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-// Troque a cidade aqui:
-(async () => {
-  const result = await getWeatherByCity("Recife");
+  hideAlert();
+  hideResult();
 
-  if (result.error) {
-    console.error("❌ Erro:", result.message);
-  } else {
-    console.log("✅ Resultado:", result);
+  try {
+    setLoading(true);
+
+    const data = await getWeatherByCity(cityInput.value);
+
+    // Render
+    resultCity.textContent = data.city;
+    resultDesc.textContent = data.description;
+
+    tempValue.textContent = Math.round(data.temperatureC);
+    windValue.textContent = Math.round(data.windKmh);
+    humValue.textContent = Math.round(data.humidity);
+
+    showResult();
+    showAlert("Dados atualizados com sucesso ✅", "ok");
+  } catch (err) {
+    const msg =
+      err instanceof TypeError
+        ? "Problema de rede. Verifique sua internet e tente novamente."
+        : err.message;
+
+    showAlert(msg, "error");
+  } finally {
+    setLoading(false);
   }
-})();
+});

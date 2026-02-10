@@ -1,0 +1,57 @@
+:root {
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+
+  /* Tema claro (default) */
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f4;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.10);
+
+  --btn-bg: #111827;
+  --btn-text: #ffffff;
+  --btn-hover: #0b1220;
+
+  --radius: 16px;
+  --focus: rgba(17, 24, 39, 0.22);
+}
+
+[data-theme="dark"] {
+  --bg: #0b0f14;
+  --surface: #101722;
+  --surface-2: #0e1520;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+
+  --btn-bg: #e5e7eb;
+  --btn-text: #111827;
+  --btn-hover: #cbd5e1;
+
+  --focus: rgba(229, 231, 235, 0.22);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(1200px 800px at 10% 0%, rgba(255,255,255,0.08), transparent 60%),
+    radial-gradient(900px 600px at 90% 10%, rgba(255,255,255,0.06), transparent 60%),
+    var(--bg);
+}
+
+button, input { font: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
